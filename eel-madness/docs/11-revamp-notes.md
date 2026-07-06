@@ -80,17 +80,17 @@ different max capacities and burn rates**. Ties rock-smashing, tunnels, and
 light management into one loop. The compacting bar stack under the eel was
 built with "N powers, N meters" in mind.
 
-## Mobile controls (2026-07-05)
+## Mobile controls (2026-07-05) — SHIPPED in the current game
 
-The two-finger boost failed in practice (second touch retargeted steering —
-fixed with a first-touch steering lock, but that's a patch, not a scheme).
-Holding a finger on the *play field* to steer fights any button-based power
-UI. Matt's leaning, to be vetted against real mobile best practices in the
-revamp planning round: a **small virtual joystick at the base of the
-screen** and a **two-hand layout** — one thumb steers on the stick, the
-other works a small cluster of power buttons (boost / greet / flare / shoot).
-Open questions: fixed vs floating stick, thumb-zone placement, how many
-buttons before it's soup.
+The two-finger boost failed in practice (second touch retargeted steering),
+and holding a finger on the *play field* to steer fights any button-based
+power UI. The joystick scheme shipped same-day (docs/02, docs/10 follow-up
+3): floating-origin stick in a fixed pad, greet/sprint/flare hold-buttons on
+the opposite side, stick side toggleable from the title Settings menu, and
+touch field-taps do nothing. **Left for the revamp**: the freed tap gesture
+is the natural "aim" for the follower volley (tap a target to shoot), and
+the button budget is full at three — "shoot" either rides the tap or
+something has to consolidate.
 
 ## The carry mechanic
 

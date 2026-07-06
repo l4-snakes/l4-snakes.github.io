@@ -51,7 +51,8 @@ const stamBar = new StaminaBar(glowSvg);                        // boost (blue)
 const lightBar = new StaminaBar(glowSvg, EEL_LIGHT.BAR_COLOR);  // eel light (green)
 const eelHalo = new EelHalo(glowSvg);
 let uiGreet = false;
-let uiFlare = false;   // the touch ✦ button's held state (docs/10)
+let uiFlare = false;    // the touch ✦ button's held state (docs/10)
+let uiSprint = false;   // the touch ⚡ button's held state (docs/02)
 
 // Food combos (docs/10): eats within COMBO.WINDOW chain; the counter drives
 // popups, escalating FX, and the (placeholder) reward below.
@@ -99,6 +100,7 @@ const ui = initUI({
   },
   onGreet: () => { uiGreet = true; },
   onFlare: held => { uiFlare = held; },
+  onSprint: held => { uiSprint = held; },
   // Start: leave the attract sea — blank slate, real dials, the eel back
   // where the save left it (the attract cruise moved it).
   onStart: () => {
@@ -229,6 +231,11 @@ window.addEventListener('resize', resize);
 // The control hint fades on first input OR after 5 s regardless — touch
 // players may never trip the input callback (it shipped stuck on mobile).
 const hint = document.getElementById('hint');
+// Touch steers with the joystick now (docs/02) — say so instead of the
+// press-and-hold line, which no longer does anything there.
+if (window.matchMedia && matchMedia('(pointer: coarse)').matches) {
+  hint.textContent = 'steer with the joystick';
+}
 let hintT = -1;
 const showHint = () => {
   hint.classList.remove('hidden');
@@ -270,7 +277,7 @@ function frame(now) {
   }
   intent.mouth = food.probe(eel);   // auto-mouth: food ahead opens the jaw
   const burstDial = progress.dial(DIALS.speedBurst);
-  intent.boost = !titleMode && burstDial > 0 && getBoost();
+  intent.boost = !titleMode && burstDial > 0 && (getBoost() || uiSprint);
   const lightDial = progress.dial(DIALS.eelLight);
   intent.flare = !titleMode && lightDial > 0 && (getFlare() || uiFlare);
 
@@ -444,6 +451,8 @@ function frame(now) {
   // brighter-than-ambient steady state until the meter empties. The mask
   // hole is the light; the halo/ring are the visible flourish.
   ui.showFlare(lightDial > 0 && !titleMode);
+  ui.showSprint(burstDial > 0 && !titleMode);
+  ui.showJoy(!titleMode);   // the joystick isn't progression-gated
   const pulseEnv = flarePulseEnv(eel.pulseU);
   let hole = null;
   let holeRWorld = 0;
