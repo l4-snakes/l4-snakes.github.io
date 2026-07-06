@@ -1,0 +1,127 @@
+// Keyboard + pointer unified into one swim intent (see docs/02-movement-and-input.md).
+// Physics never knows which device produced it.
+
+const POINTER_DEADZONE = 14;  // px — intent goes inactive within this of the head
+const POINTER_ARRIVE = 150;   // px — full throttle beyond this; eases down inside (arrive)
+
+const KEYMAP = {
+  KeyW: [0, -1], ArrowUp: [0, -1],
+  KeyS: [0, 1], ArrowDown: [0, 1],
+  KeyA: [-1, 0], ArrowLeft: [-1, 0],
+  KeyD: [1, 0], ArrowRight: [1, 0],
+};
+
+const keys = new Set();
+const pointer = { active: false, x: 0, y: 0 };
+const activePtrs = new Set();
+let steerPtr = null;   // steering belongs to the FIRST touch only (see below)
+let greetQueued = false;
+let shiftHeld = false;
+let flareHeld = false;   // J — the eel-light flare (docs/10)
+
+// Edge-triggered greet (I key / the touch button via ui.js → main).
+export function consumeGreet() {
+  const g = greetQueued;
+  greetQueued = false;
+  return g;
+}
+
+// Speed-burst want (docs/02): Shift held, or a second finger on touch.
+export function getBoost() {
+  return shiftHeld || activePtrs.size >= 2;
+}
+
+// Eel-light flare want (docs/10): J held. The touch ✦ button goes through
+// ui.js → main, same as greet.
+export function getFlare() {
+  return flareHeld;
+}
+
+export function initInput(onFirstInput) {
+  let first = false;
+  const firstInput = () => {
+    if (!first) { first = true; onFirstInput && onFirstInput(); }
+  };
+
+  window.addEventListener('keydown', e => {
+    if (KEYMAP[e.code]) {
+      keys.add(e.code);
+      firstInput();
+      e.preventDefault();
+    } else if (e.code === 'KeyI') {
+      greetQueued = true;
+      firstInput();
+    } else if (e.code === 'KeyJ') {
+      flareHeld = true;
+      firstInput();
+    } else if (e.key === 'Shift') {
+      shiftHeld = true;
+    }
+  });
+  window.addEventListener('keyup', e => {
+    keys.delete(e.code);
+    if (e.code === 'KeyJ') flareHeld = false;
+    if (e.key === 'Shift') shiftHeld = false;
+  });
+  window.addEventListener('blur', () => {
+    keys.clear();
+    shiftHeld = false;
+    flareHeld = false;
+    activePtrs.clear();
+    steerPtr = null;
+    pointer.active = false;
+  });
+
+  window.addEventListener('pointerdown', e => {
+    // UI touches (pause, menu, action buttons) never reach steering.
+    if (e.target && e.target.closest && e.target.closest('#ui')) return;
+    activePtrs.add(e.pointerId);   // extra fingers = boost want, nothing more
+    // Steering locks to the first touch: additional fingers must never move
+    // the target (the original two-finger boost retargeted the eel — release
+    // notes 2026-07-05). Steering ends when THAT finger lifts; a still-held
+    // boost finger is never promoted (its position would yank the eel).
+    if (steerPtr === null) {
+      steerPtr = e.pointerId;
+      pointer.active = true;
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+    }
+    firstInput();
+  });
+  window.addEventListener('pointermove', e => {
+    if (pointer.active && e.pointerId === steerPtr) {
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+    }
+  });
+  const release = e => {
+    activePtrs.delete(e.pointerId);
+    if (e.pointerId === steerPtr) {
+      steerPtr = null;
+      pointer.active = false;
+    }
+  };
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', release);
+}
+
+// Returns { active, dirX, dirY, throttle, mouth } — dir unit-length, throttle
+// in [0,1]. mouth is a placeholder: the game sets it (auto-mouth, docs/02).
+export function getIntent(headX, headY) {
+  let dx = 0, dy = 0;
+  for (const k of keys) { dx += KEYMAP[k][0]; dy += KEYMAP[k][1]; }
+  if (dx || dy) {
+    const m = Math.hypot(dx, dy);
+    return { active: true, dirX: dx / m, dirY: dy / m, throttle: 1, mouth: false };
+  }
+  if (pointer.active) {
+    const tx = pointer.x - headX, ty = pointer.y - headY;
+    const d = Math.hypot(tx, ty);
+    // Arrive behavior: throttle eases down near the held point so the eel
+    // settles there instead of orbiting. Small deadzone against jitter.
+    if (d > POINTER_DEADZONE) {
+      return { active: true, dirX: tx / d, dirY: ty / d, throttle: Math.min(1, d / POINTER_ARRIVE), mouth: false };
+    }
+  }
+  return { active: false, dirX: 0, dirY: 0, throttle: 0, mouth: false };
+}

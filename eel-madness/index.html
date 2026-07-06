@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Eel Madness</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="water"></canvas>
+<svg id="eel-layer" xmlns="http://www.w3.org/2000/svg">
+  <g id="rocks"></g>
+  <g id="critters"></g>
+  <g id="food"></g>
+  <g id="eel">
+    <rect id="eel-damage"/>
+    <path id="eel-mouth"/>
+    <path id="eel-body"/>
+    <path id="eel-lip"/>
+    <path id="eel-shadow"/>
+    <ellipse id="eel-eye"/>
+    <circle id="eel-pupil"/>
+    <circle id="eel-shine"/>
+    <g id="eel-lashes"></g>
+    <g id="eel-wig"></g>
+  </g>
+  <g id="fg"></g>
+</svg>
+<div id="veil"></div>
+<svg id="glow-layer" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow-grad">
+      <stop offset="0%" stop-color="#bfeeff" stop-opacity="0.85"/>
+      <stop offset="55%" stop-color="#bfeeff" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#bfeeff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g id="bg-glows"></g>
+  <g id="glows"></g>
+  <g id="hearts"></g>
+</svg>
+<div id="flash"></div>
+<div id="title">
+  <div id="title-save" hidden></div>
+  <div id="title-card">
+    <div id="title-head">
+      <h1 id="title-name">Eel Madness</h1>
+      <p id="title-tag">eat the Eel&rsquo;s<br>favorite meals</p>
+    </div>
+    <div id="title-buttons">
+      <button id="t-start">Start</button>
+      <button id="t-skip">Skip To The End</button>
+      <button id="t-reset" hidden>Reset</button>
+    </div>
+  </div>
+</div>
+<div id="hint" class="hidden">WASD / arrows to swim &mdash; or press &amp; hold</div>
+<div id="levelups"></div>
+<div id="combo"></div>
+<div id="ui">
+  <button id="pause" aria-label="Pause">&#10074;&#10074;</button>
+  <div id="menu" hidden>
+    <div id="menu-panel">
+      <div id="meters"></div>
+      <button id="resume">Resume</button>
+      <button id="tomenu">Main Menu</button>
+      <button id="reset">Reset progress</button>
+    </div>
+  </div>
+  <button id="btn-greet" aria-label="Greet" hidden>&#9825;</button>
+  <button id="btn-flare" aria-label="Flare" hidden>&#10022;</button>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,426 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #041018;
+}
+
+body {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#water, #eel-layer, #glow-layer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#eel-layer, #glow-layer { pointer-events: none; }
+
+/* Darkness veil (docs/03, docs/07): world-height gradient above the sprites,
+   translated with the camera each frame — height + gradient set from js. */
+#veil {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+  will-change: transform;
+}
+
+
+#eel-body {
+  fill: #0b0b0e;
+  stroke: rgba(35, 40, 51, 0.9);   /* fins: near-black, a whisper of blue */
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+
+#eel-mouth { fill: #45141f; }   /* mouth interior, shows through the open jaw */
+
+/* EEL MAGIC makeup (docs/01, docs/07) — colors and opacity are set per frame
+   as ATTRIBUTES (a CSS opacity property here would override them and hide
+   the makeup entirely — that was a real bug, don't reintroduce it) */
+#eel-lip {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+#eel-eye { fill: #f5efe2; }
+#eel-pupil { fill: #141312; }
+#eel-shine { fill: #ffffff; opacity: 0.9; }
+
+#eel-lashes path {
+  stroke: #141312;
+  stroke-width: 1.3;
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* Chromium workaround, not decoration: a barely-painted rect resized over the
+   wig every frame so its invalidation rect forces Chrome to re-raster the
+   region (wig paths under-invalidate and leave residue) — see docs/04.
+   0.4% alpha ≈ 1/255: the minimum that still paints. */
+#eel-damage { fill: rgb(11 11 14 / 0.4%); }
+
+/* Critters (docs/07) — minnow fill is set per-frame (silver shimmer) */
+#critters .minnow { stroke: rgba(232, 244, 248, 0.35); stroke-width: 0.4; }
+#critters .minnow-eye { fill: #10181c; opacity: 0.8; }
+#critters .jelly-bell {
+  fill: rgba(255, 183, 214, 0.34);
+  stroke: rgba(255, 208, 228, 0.55);
+  stroke-width: 1;
+}
+/* jelly inner glows live on the glow layer (above the veil — docs/03);
+   fill comes from a per-jelly gradient attribute (WORLD MAGIC hues) */
+#critters .jelly-tent {
+  stroke: rgba(255, 199, 224, 0.5);
+  stroke-width: 1.4;
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* P3 species (docs/09) — fills that vary per critter (reef band gradient,
+   octopus camouflage, seahorse tint) are set as ATTRIBUTES per frame; only
+   fixed styling lives here (the CSS-beats-attributes gotcha — keep fill and
+   opacity out of these) */
+#critters .reef { stroke: rgba(255, 255, 255, 0.28); stroke-width: 0.6; }
+#critters .reef-eye { fill: #1a1216; }
+#critters .seahorse { stroke: rgba(255, 233, 200, 0.4); stroke-width: 0.5; }
+#critters .seahorse-stripes { stroke: rgba(255, 250, 235, 0.35); stroke-width: 1.1; fill: none; stroke-linecap: round; }
+#critters .seahorse-eye { fill: #14100e; }
+/* octopus: fills AND the tentacle edge stroke are per-frame attributes (the
+   camouflage repaints them all) — only widths live here. The dark edge keeps
+   overlapping tentacles readable. */
+#critters .octo-body { stroke: none; }
+#critters .octo-tent { stroke-width: 1.6; stroke-linejoin: round; }
+#critters .octo-pupil { fill: #100d14; }
+#critters .angler { fill: #11151c; stroke: rgba(160, 190, 210, 0.35); stroke-width: 0.8; }
+#critters .angler-teeth { stroke: #dfe9ee; stroke-width: 0.9; fill: none; stroke-linejoin: round; }
+#critters .angler-stalk { stroke: #2a3542; stroke-width: 1.2; fill: none; stroke-linecap: round; }
+#critters .angler-eye { fill: #cfd8dd; opacity: 0.75; }
+
+/* (surface drift-vines were cut — their styles went with them) */
+
+/* The front kelp plane (docs/09) — fill set per strand from js/fgplane.js */
+#fg path { stroke: none; }
+
+/* Roaming fish (salmon / barracuda / swordfish) — fills shimmer per frame */
+#critters .roamer { stroke: rgba(255, 255, 255, 0.22); stroke-width: 0.6; }
+#critters .roamer-eye { fill: #14100e; }
+
+/* Greet-range highlight (docs/07): pulsing bounding-box corner BRACKETS in
+   the eel-heart pink frame anyone who would answer — glow layer, d/opacity
+   written per frame (keep opacity/stroke-width overrides out of here). */
+#glows .greet-bracket {
+  stroke: #ff9db8;   /* the eel-heart pink */
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  fill: none;
+}
+
+/* Eat flash (docs/06): fullscreen tint above the veil, opacity driven per frame */
+#flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Greet hearts — fill set per emitter */
+#hearts path { stroke: rgba(255, 255, 255, 0.35); stroke-width: 0.6; }
+
+/* Hair color knobs (lock thickness/length/count are in js/eel.js) */
+#eel-wig path {
+  fill: #efe7e2;     /* the hair — platinum blonde */
+  stroke: #d9cdb0;   /* lock edge, so overlapping locks read separately */
+  stroke-width: 0.5;
+  stroke-linejoin: round;
+}
+
+/* Title screen (docs/08): a tasteful card over the attract-mode sea. The
+   attract world stays visible through a soft vignette; type leans serif and
+   airy, tinted by the sea's own palette. */
+#title {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center,
+    rgba(2, 10, 14, 0.18) 30%, rgba(2, 10, 14, 0.62) 100%);
+  font-family: Palatino, 'Palatino Linotype', Georgia, serif;
+  z-index: 5;
+}
+#title[hidden] { display: none; }
+/* composition: everything anchors to the ATTRACT EEL'S swim line at 50vh
+   (the camera centers the eel) — title + tagline sit a symmetric gap above
+   it, buttons the same gap below */
+#title-card { position: absolute; inset: 0; text-align: center; }
+#title-head {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 59vh;   /* block ends 9vh above the eel line */
+}
+#title-name {
+  font-size: clamp(44px, 9vw, 88px);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  color: #e8f4ee;
+  text-shadow: 0 0 26px rgba(120, 220, 200, 0.45),
+               0 0 60px rgba(255, 157, 184, 0.30),
+               0 2px 6px rgba(2, 10, 14, 0.85);
+}
+#title-tag {
+  margin-top: 10px;
+  font-style: italic;
+  font-size: clamp(16px, 2.6vw, 24px);
+  line-height: 1.45;
+  letter-spacing: 0.06em;
+  color: rgba(226, 240, 234, 0.85);
+  text-shadow: 0 1px 4px rgba(2, 10, 14, 0.8);
+}
+#title-buttons {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 59vh;   /* block starts 9vh below the eel line */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+#title-buttons button {
+  font: 17px Palatino, 'Palatino Linotype', Georgia, serif;
+  letter-spacing: 0.12em;
+  color: rgba(226, 240, 234, 0.9);
+  background: rgba(8, 24, 30, 0.55);
+  border: 1px solid rgba(210, 235, 225, 0.3);
+  border-radius: 22px;
+  padding: 10px 44px;
+  min-width: 190px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+#title-buttons button:hover { background: rgba(16, 44, 52, 0.7); }
+#title-buttons button[hidden] { display: none; }
+/* saved-sea footer: the four axis levels, along the bottom edge */
+#title-save {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  text-align: center;
+  font: 13px/1.7 Palatino, 'Palatino Linotype', Georgia, serif;
+  letter-spacing: 0.14em;
+  color: rgba(226, 240, 234, 0.8);
+  text-shadow: 0 1px 4px rgba(2, 10, 14, 0.8);
+}
+#title-save .axis-lv { margin: 0 10px; white-space: nowrap; }
+#title-save[hidden] { display: none; }
+@media (orientation: portrait) {
+  /* tighter footer on phones (ui.js also abbreviates the labels) */
+  #title-save { font-size: 12px; letter-spacing: 0.08em; }
+  #title-save .axis-lv { margin: 0 5px; }
+}
+
+#hint {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  color: rgba(210, 235, 225, 0.55);
+  font: 14px/1.4 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 1.2s;
+}
+
+#hint.hidden { opacity: 0; }
+
+/* UI layer: pause + menu + mobile action buttons. Steering ignores taps here. */
+#ui [hidden] { display: none !important; }
+
+#ui button {
+  font: 16px system-ui, sans-serif;
+  color: rgba(210, 235, 225, 0.75);
+  background: rgba(210, 235, 225, 0.08);
+  border: 1px solid rgba(210, 235, 225, 0.22);
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+#pause {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+  width: 40px;
+  height: 40px;
+  font-size: 12px;
+}
+
+#menu {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 10, 14, 0.55);
+}
+
+#menu-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px 26px;
+  background: rgba(8, 24, 30, 0.92);
+  border: 1px solid rgba(210, 235, 225, 0.15);
+  border-radius: 14px;
+}
+
+#menu-panel button {
+  border-radius: 9px;
+  padding: 10px 20px;
+}
+
+/* Axis meters in the pause menu */
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font: 11px/1 system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  color: rgba(210, 235, 225, 0.65);
+}
+.meter span { width: 92px; text-align: right; }
+.meter .lv { width: 44px; text-align: left; opacity: 0.85; }
+.meter .track {
+  width: 150px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(210, 235, 225, 0.10);
+  overflow: hidden;
+}
+.meter .fill {
+  height: 100%;
+  border-radius: 3px;
+  width: 0;
+}
+#meters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+
+/* Level-up popups (docs/08): chained, axis-colored (inline), snappy but subtle.
+   Opacity rides one keyframe animation on the outer element (duration set
+   inline from LEVELS.POP_T / GUIDE_T); the pop-in overshoot is a separate
+   fixed-length transform animation on the inner, so the snap never stretches
+   with dwell time. */
+#levelups {
+  position: fixed;
+  top: 14%;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  font: 14px/1.3 system-ui, sans-serif;
+  text-align: center;
+}
+.levelup {
+  animation: lu-life 1.6s linear both;
+  text-shadow: 0 0 14px rgba(2, 10, 14, 0.9), 0 1px 2px rgba(2, 10, 14, 0.8);
+}
+.lu-inner { animation: lu-in 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.lu-pop {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.lu-axis {
+  margin-top: 2px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  opacity: 0.9;
+}
+.lu-note {
+  margin-top: 7px;
+  font-size: 15px;
+  color: rgba(235, 245, 240, 0.95);
+}
+@keyframes lu-life {
+  0% { opacity: 0; }
+  9% { opacity: 1; }
+  78% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes lu-in {
+  from { transform: scale(0.6) translateY(12px); }
+  to { transform: scale(1) translateY(0); }
+}
+
+/* Food combo counter (docs/10): "2x" "3x" … "5x!" — sits under the level-up
+   line, axis-colored inline, replaced (not queued) on each fresh link. */
+#combo {
+  position: fixed;
+  top: 24%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  font: 14px/1 system-ui, sans-serif;
+}
+.combo-pop {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 14px rgba(2, 10, 14, 0.9), 0 1px 2px rgba(2, 10, 14, 0.8);
+  animation: combo-life 0.9s linear both;
+}
+@keyframes combo-life {
+  0% { opacity: 0; transform: scale(0.5); }
+  12% { opacity: 1; transform: scale(1.15); }
+  24% { transform: scale(1); }
+  70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Rocks (docs/10) — fills are seeded per rock in js/rocks.js; only the fixed
+   edge lives here (CSS-beats-attributes: keep fill out) */
+#rocks path { stroke: rgba(150, 170, 190, 0.18); stroke-width: 1.2; }
+
+/* Translucent greet button (touch devices; docs/07 — wired in P1).
+   Grays out when nothing is in greet radius (ui.showGreet disables it). */
+#btn-greet {
+  position: fixed;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: max(18px, env(safe-area-inset-left));
+  width: 64px;
+  height: 64px;
+  font-size: 26px;
+  transition: opacity 0.25s;
+}
+#btn-greet:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Eel-light flare (docs/10): press-and-HOLD, stacked above the greet button */
+#btn-flare {
+  position: fixed;
+  bottom: max(94px, calc(env(safe-area-inset-bottom) + 76px));
+  left: max(18px, env(safe-area-inset-left));
+  width: 64px;
+  height: 64px;
+  font-size: 24px;
+  transition: opacity 0.25s;
+}
